@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RestoreAI — Image Restoration & Colorization Studio</title>
+  <meta name="description" content="AI-powered image restoration, scratch removal, and colorization using custom trained CNN models." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── AMBIENT BACKGROUND ── -->
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="17" stroke="url(#lg1)" stroke-width="2"/>
+          <path d="M10 22 Q18 8 26 22" stroke="url(#lg2)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <circle cx="14" cy="20" r="3" fill="url(#lg1)"/>
+          <circle cx="22" cy="20" r="3" fill="url(#lg2)"/>
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#818cf8"/><stop offset="1" stop-color="#06b6d4"/>
+            </linearGradient>
+            <linearGradient id="lg2" x1="0" y1="36" x2="36" y2="0" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#a78bfa"/><stop offset="1" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-text">Restore<span class="logo-accent">AI</span></span>
+      </div>
+
+      <div class="status-pill" id="status-pill">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting...</span>
+      </div>
+
+      <div class="checkpoint-selector-wrap">
+        <label class="select-label">Checkpoint</label>
+        <select id="checkpoint-select" class="checkpoint-select" title="Choose trained model checkpoint">
+          <option value="">-- Select --</option>
+        </select>
+        <button id="load-btn" class="load-btn">Load</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-badge">Custom-Trained CNN · From Scratch</div>
+    <h1 class="hero-title">
+      Breathe Life Back Into<br/>
+      <span class="gradient-text">Old Photographs</span>
+    </h1>
+    <p class="hero-sub">
+      Upload a degraded, scratched, or black-and-white image. Our two-stage AI pipeline
+      first removes defects, then predicts vivid, realistic colors.
+    </p>
+  </section>
+
+  <!-- ── MAIN LAYOUT ── -->
+  <main class="main-layout">
+
+    <!-- LEFT: UPLOAD + CONTROLS -->
+    <aside class="panel panel-left">
+      <div class="panel-title">Input</div>
+
+      <!-- Drop zone -->
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload image">
+        <div class="drop-icon">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M24 6v24M14 16l10-10 10 10" stroke="url(#lg_upload)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 34v4a2 2 0 002 2h28a2 2 0 002-2v-4" stroke="url(#lg_upload)" stroke-width="3" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="lg_upload" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#818cf8"/><stop offset="1" stop-color="#22d3ee"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <p class="drop-label">Drop image here</p>
+        <p class="drop-sub">or click to browse</p>
+        <input type="file" id="file-input" accept="image/*" hidden />
+      </div>
+
+      <!-- Preview -->
+      <div class="input-preview-wrap" id="input-preview-wrap" style="display:none">
+        <img id="input-preview" class="input-preview" alt="Input preview" />
+        <button class="clear-btn" id="clear-btn" title="Remove image">✕</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-card">
+        <div class="ctrl-row">
+          <div class="ctrl-group">
+            <label class="ctrl-label" for="mode-select">Mode</label>
+            <select id="mode-select" class="ctrl-select">
+              <option value="both" selected>Full Pipeline</option>
+              <option value="restore">Restore Only</option>
+              <option value="colorize">Colorize Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ctrl-row">
+          <label class="ctrl-label toggle-label">
+            <span>Simulate Scratches</span>
+            <div class="toggle-wrap">
+              <input type="checkbox" id="degrade-toggle" checked />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </div>
+          </label>
+        </div>
+
+        <div class="ctrl-row" id="intensity-row">
+          <label class="ctrl-label" for="intensity-slider">Scratch Intensity — <span id="intensity-val">6</span></label>
+          <input type="range" id="intensity-slider" class="slider" min="1" max="15" value="6" />
+        </div>
+
+        <div class="ctrl-row">
+          <label class="ctrl-label" for="sharpen-slider">Post Sharpening — <span id="sharpen-val">1.0</span></label>
+          <input type="range" id="sharpen-slider" class="slider" min="0" max="20" value="10" step="1" />
+          <p style="font-size:0.7rem;color:var(--text-3);margin-top:2px">Unsharp mask on L channel only — 0 = off, 2.0 = strong</p>
+        </div>
+
+        <div class="ctrl-row" style="margin-top:1.5rem; padding-top:1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+          <label class="ctrl-label toggle-label">
+            <div>
+              <span>AI Upscale (Real-ESRGAN)</span>
+              <p style="font-size:0.7rem;color:var(--text-3);margin-top:2px;font-weight:normal;">Boosts resolution from 256px to 1024px instantly</p>
+            </div>
+            <div class="toggle-wrap">
+              <input type="checkbox" id="upscale-toggle" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </div>
+          </label>
+        </div>
+
+        <button class="run-btn" id="run-btn" disabled>
+          <span class="run-btn-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.841z"/></svg>
+          </span>
+          <span id="run-label">Run AI Pipeline</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT: RESULTS -->
+    <section class="panel panel-right">
+      <div class="panel-title">Results</div>
+
+      <!-- Idle state -->
+      <div class="idle-state" id="idle-state">
+        <div class="idle-graphic">
+          <svg viewBox="0 0 120 120" fill="none">
+            <circle cx="60" cy="60" r="55" stroke="#1e293b" stroke-width="2"/>
+            <circle cx="60" cy="60" r="38" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+            <rect x="34" y="42" width="52" height="36" rx="4" stroke="#334155" stroke-width="1.5"/>
+            <path d="M34 68l14-12 10 8 10-14 14 18" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="47" cy="54" r="4" fill="#334155"/>
+          </svg>
+        </div>
+        <p class="idle-text">Upload an image and hit <strong>Run AI Pipeline</strong></p>
+        <p class="idle-sub">Results will appear here with a stage-by-stage breakdown</p>
+      </div>
+
+      <!-- Processing state -->
+      <div class="processing-state" id="processing-state" style="display:none">
+        <div class="stage-pipeline">
+          <div class="stage-item" id="stage-degrade">
+            <div class="stage-icon-wrap"><div class="stage-spinner"></div></div>
+            <span>Degradation</span>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage-item" id="stage-restore">
+            <div class="stage-icon-wrap"><div class="stage-spinner"></div></div>
+            <span>Restoration</span>
+          </div>
+          <div class="stage-arrow">→</div>
+          <div class="stage-item" id="stage-color">
+            <div class="stage-icon-wrap"><div class="stage-spinner"></div></div>
+            <span>Colorization</span>
+          </div>
+        </div>
+        <p class="processing-label">Model is thinking...</p>
+      </div>
+
+      <!-- Results grid -->
+      <div class="results-grid" id="results-grid" style="display:none">
+
+        <div class="result-card" id="card-degraded">
+          <div class="result-card-header">
+            <span class="result-badge badge-red">Input · Degraded</span>
+          </div>
+          <div class="result-img-wrap">
+            <img id="img-degraded" class="result-img" alt="Degraded Input" />
+          </div>
+          <p class="result-desc">Grayscale input with synthetic scratches and noise</p>
+        </div>
+
+        <div class="result-card" id="card-restored">
+          <div class="result-card-header">
+            <span class="result-badge badge-yellow">Stage 1 · Restored</span>
+          </div>
+          <div class="result-img-wrap">
+            <img id="img-restored" class="result-img" alt="Restored" />
+          </div>
+          <p class="result-desc">Scratch removal and denoising via Restoration U-Net</p>
+        </div>
+
+        <div class="result-card" id="card-colorized">
+          <div class="result-card-header">
+            <span class="result-badge badge-green">Stage 2 · Final</span>
+          </div>
+          <div class="result-img-wrap">
+            <img id="img-colorized" class="result-img" alt="Colorized" />
+          </div>
+          <p class="result-desc">Context-aware colorization via Colorization U-Net</p>
+        </div>
+
+      </div>
+
+      <!-- Before / after slider (shows after results load) -->
+      <div class="slider-section" id="slider-section" style="display:none">
+        <div class="slider-section-header">
+          <span class="panel-title" style="margin:0">Before / After</span>
+          <div class="slider-tabs">
+            <button class="stab active" data-pair="degraded-colorized" id="tab-full">Full Transform</button>
+            <button class="stab" data-pair="degraded-restored" id="tab-restore">Restoration Only</button>
+          </div>
+        </div>
+        <div class="compare-wrap" id="compare-wrap">
+          <img id="compare-before" class="compare-img compare-behind" alt="Before" />
+          <img id="compare-after"  class="compare-img compare-front"  alt="After" />
+          <div class="compare-divider" id="compare-divider">
+            <div class="divider-handle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M8 12H4m0 0l3 3M4 12l3-3M16 12h4m0 0l-3 3m3-3-3-3"/>
+              </svg>
+            </div>
+          </div>
+          <span class="compare-label compare-label-left">Before</span>
+          <span class="compare-label compare-label-right">After</span>
+        </div>
+
+        <!-- Download buttons -->
+        <div class="download-row" id="download-row">
+          <button class="dl-btn" id="dl-degraded">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M10 2a1 1 0 011 1v9.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 12.586V3a1 1 0 011-1zM4 17a1 1 0 100 2h12a1 1 0 100-2H4z"/></svg>
+            Download Input (Degraded)
+          </button>
+          <button class="dl-btn" id="dl-restored">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M10 2a1 1 0 011 1v9.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 12.586V3a1 1 0 011-1zM4 17a1 1 0 100 2h12a1 1 0 100-2H4z"/></svg>
+            Download Restored
+          </button>
+          <button class="dl-btn dl-btn-primary" id="dl-colorized">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M10 2a1 1 0 011 1v9.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 12.586V3a1 1 0 011-1zM4 17a1 1 0 100 2h12a1 1 0 100-2H4z"/></svg>
+            Download Colorized
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ── MODEL INFO FOOTER STRIP ── -->
+  <div class="info-strip" id="info-strip" style="display:none">
+    <div class="info-item"><span class="info-label">Checkpoint</span><span class="info-val" id="info-checkpoint">—</span></div>
+    <div class="info-sep"></div>
+    <div class="info-item"><span class="info-label">Epoch</span><span class="info-val" id="info-epoch">—</span></div>
+    <div class="info-sep"></div>
+    <div class="info-item"><span class="info-label">Device</span><span class="info-val" id="info-device">—</span></div>
+    <div class="info-sep"></div>
+    <div class="info-item"><span class="info-label">Architecture</span><span class="info-val">Custom U-Net × 2</span></div>
+    <div class="info-sep"></div>
+    <div class="info-item"><span class="info-label">Color Space</span><span class="info-val">CIELAB (L→ab)</span></div>
+  </div>
+
+  <!-- ── TOAST ── -->
+  <div class="toast" id="toast">
+    <span class="toast-icon" id="toast-icon">✓</span>
+    <span id="toast-msg">Done!</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
